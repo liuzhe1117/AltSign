@@ -1,0 +1,15 @@
+AltSign/Sources/ALTAppleAPI+Authentication.swift
+  h_cde38561a364e5 14-37,95,108,150,236,312,314,577,581-587,602,616,619,624,629,636
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "f99952637057c1021115600c031fcfdee1d38e90",
+  "prompts": {},
+  "logical_commit_id": "f99952637057c1021115600c031fcfdee1d38e90",
+  "humans": {
+    "h_cde38561a364e5": {
+      "author": "liuzhe1117 <liuzhe1117@gmail.com>"
+    }
+  }
+}

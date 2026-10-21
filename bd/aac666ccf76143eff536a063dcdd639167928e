@@ -1,0 +1,17 @@
+"AltSign/Apple API/ALTAppleAPI.h"
+  h_cde38561a364e5 31-42
+AltSign/Sources/ALTAppleAPI+Authentication.swift
+  h_cde38561a364e5 14-26,72-81,83-99,101-105,107-108,110-111,113-115,117-123,125-128,130-133,135-136,138-141,143,145-153,156-165,167-172,175-184,186-189,191,193-194,196-211,215-224,230-233,236-239,242-243,254-286,318,324-378,517-518,527,566-570,583-586,593-594,632-634,636-637
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "bdaac666ccf76143eff536a063dcdd639167928e",
+  "prompts": {},
+  "logical_commit_id": "bdaac666ccf76143eff536a063dcdd639167928e",
+  "humans": {
+    "h_cde38561a364e5": {
+      "author": "liuzhe1117 <liuzhe1117@gmail.com>"
+    }
+  }
+}

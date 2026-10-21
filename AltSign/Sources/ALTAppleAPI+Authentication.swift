@@ -11,6 +11,30 @@ import Foundation
 @_exported import CAltSign
 import CAltSign.Private
 
+// Stable identity for one SRP flow. Refreshing its OTP must not switch devices
+// or let a later sign-in change this flow's User-Agent.
+private struct AuthenticationIdentity
+{
+    let userAgent: String
+    private let clientInfo: String
+    private let deviceID: String
+    private let localUserID: String
+
+    init(anisetteData: ALTAnisetteData, userAgent: String)
+    {
+        self.userAgent = userAgent
+        self.clientInfo = anisetteData.deviceDescription
+        self.deviceID = anisetteData.deviceUniqueIdentifier
+        self.localUserID = anisetteData.localUserID
+    }
+
+    func matches(_ anisetteData: ALTAnisetteData) -> Bool
+    {
+        anisetteData.deviceDescription == self.clientInfo &&
+        anisetteData.deviceUniqueIdentifier == self.deviceID && anisetteData.localUserID == self.localUserID
+    }
+}
+
 // Don't follow redirects for GrandSlam requests so an unexpected redirect surfaces as an HTTP error.
 private final class AuthenticationSessionDelegate: NSObject, URLSessionTaskDelegate
 {
@@ -68,6 +92,7 @@ public extension ALTAppleAPI
         {
             let context = GSAContext(username: sanitizedAppleID, password: password)
             guard let publicKey = context.start() else { throw ALTAppleAPIError(.authenticationHandshakeFailed) }
+            let identity = AuthenticationIdentity(anisetteData: anisetteData, userAgent: self.userAgent)
             
             func beginAuthentication(using anisetteData: ALTAnisetteData, hasResynchronized: Bool = false)
             {
@@ -80,7 +105,7 @@ public extension ALTAppleAPI
                     "u": sanitizedAppleID
                 ] as [String: Any]
             
-                self.sendAuthenticationRequest(parameters: parameters, anisetteData: anisetteData) { (result) in
+                self.sendAuthenticationRequest(parameters: parameters, anisetteData: anisetteData, identity: identity) { (result) in
                     do
                     {
                         let responseDictionary = try result.get()
@@ -122,7 +147,7 @@ public extension ALTAppleAPI
                             "u": sanitizedAppleID
                         ] as [String: Any]
                     
-                        self.sendAuthenticationRequest(parameters: parameters, anisetteData: anisetteData) { (result) in
+                        self.sendAuthenticationRequest(parameters: parameters, anisetteData: anisetteData, identity: identity) { (result) in
                             do
                             {
                                 let responseDictionary = try result.get()
@@ -208,7 +233,7 @@ public extension ALTAppleAPI
                                             "u": dsid
                                         ] as [String: Any]
                                     
-                                        self.fetchAuthToken(app: app, parameters: parameters, context: context, anisetteData: anisetteData) { (result) in
+                                        self.fetchAuthToken(app: app, parameters: parameters, context: context, anisetteData: anisetteData, identity: identity) { (result) in
                                             switch result
                                             {
                                             case .failure(let error): completionHandler(nil, nil, error)
@@ -284,9 +309,9 @@ private extension ALTAppleAPI
         }
     }
     
-    func fetchAuthToken(app: String, parameters: [String: Any], context: GSAContext, anisetteData: ALTAnisetteData, completionHandler: @escaping (Result<String, Error>) -> Void)
+    func fetchAuthToken(app: String, parameters: [String: Any], context: GSAContext, anisetteData: ALTAnisetteData, identity: AuthenticationIdentity, completionHandler: @escaping (Result<String, Error>) -> Void)
     {
-        self.sendAuthenticationRequest(parameters: parameters, anisetteData: anisetteData) { (result) in
+        self.sendAuthenticationRequest(parameters: parameters, anisetteData: anisetteData, identity: identity) { (result) in
             do
             {
                 let responseDictionary = try result.get()
@@ -549,10 +574,17 @@ private extension ALTAppleAPI
         dataTask.resume()
     }
     
-    func sendAuthenticationRequest(parameters requestParameters: [String: Any], anisetteData: ALTAnisetteData, completionHandler: @escaping (Result<[String: Any], Error>) -> Void)
+    func sendAuthenticationRequest(parameters requestParameters: [String: Any], anisetteData: ALTAnisetteData, identity: AuthenticationIdentity, completionHandler: @escaping (Result<[String: Any], Error>) -> Void)
     {
         do
         {
+            guard identity.matches(anisetteData) else
+            {
+                throw ALTAppleAPIError(.invalidAnisetteData, userInfo: [
+                    NSLocalizedDescriptionKey: NSLocalizedString("The Anisette identity changed during authentication. Start a new sign-in.", comment: "")
+                ])
+            }
+
             let requestURL = URL(string: "https://gsa.apple.com/grandslam/GsService2")!
             
             let parameters = [
@@ -567,7 +599,7 @@ private extension ALTAppleAPI
                 "X-Xcode-Version": "27.0 (27A5218g)",
                 "X-Apple-App-Info": "com.apple.gs.xcode.auth",
                 "Connection": "close",
-                "User-Agent": self.userAgent
+                "User-Agent": identity.userAgent
             ]
             
             let bodyData = try PropertyListSerialization.data(fromPropertyList: parameters, format: .xml, options: 0)
@@ -581,27 +613,27 @@ private extension ALTAppleAPI
                 do
                 {
                     let (data, httpResponse) = try result.get()
-                    
+
                     // GSA answers rejected clients with an HTML error page (e.g. 503), which would otherwise surface as a plist parsing error.
                     guard (200 ..< 300).contains(httpResponse.statusCode) else { throw ALTAppleAPIError.unknown(statusCode: httpResponse.statusCode) }
-                    
+
                     guard let responseDictionary = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
                           let dictionary = responseDictionary["Response"] as? [String: Any],
                           let status = dictionary["Status"] as? [String: Any]
                     else { throw URLError(.badServerResponse) }
-                                        
+
                     // hsc 434 is a protocol resync, handled once by the original init.
                     if status["hsc"] as? Int == 434 { return completionHandler(.success(dictionary)) }
                     let errorCode = status["ec"] as? Int ?? 0
                     guard errorCode != 0 else { return completionHandler(.success(dictionary)) }
-                    
+
                     switch errorCode
                     {
                     case -20101, -22406: throw ALTAppleAPIError(.incorrectCredentials)
                     case -22421: throw ALTAppleAPIError(.invalidAnisetteData)
                     default:
                         guard let errorDescription = status["em"] as? String else { throw ALTAppleAPIError.unknown() }
-                        
+
                         let localizedDescription = errorDescription + " (\(errorCode))"
                         throw NSError(domain: ALTUnderlyingAppleAPIErrorDomain, code: errorCode, userInfo: [NSLocalizedDescriptionKey: localizedDescription])
                     }

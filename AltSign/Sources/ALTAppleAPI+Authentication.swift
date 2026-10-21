@@ -614,8 +614,21 @@ private extension ALTAppleAPI
                 {
                     let (data, httpResponse) = try result.get()
 
-                    // GSA answers rejected clients with an HTML error page (e.g. 503), which would otherwise surface as a plist parsing error.
-                    guard (200 ..< 300).contains(httpResponse.statusCode) else { throw ALTAppleAPIError.unknown(statusCode: httpResponse.statusCode) }
+                    // Preserve only enough response metadata to locate the failed step.
+                    // Inspecting the plist here must not change HTTP error handling or expose its contents.
+                    guard (200 ..< 300).contains(httpResponse.statusCode) else
+                    {
+                        let response = (try? PropertyListSerialization.propertyList(from: data, format: nil)) as? [String: Any]
+                        let dictionary = response?["Response"] as? [String: Any]
+                        let status = dictionary?["Status"] as? [String: Any]
+                        let operation = requestParameters["o"] as? String ?? "unknown"
+                        throw ALTAppleAPIError.unknown(statusCode: httpResponse.statusCode, userInfo: [
+                            "AuthenticationStage": ["init", "complete", "apptokens"].contains(operation) ? operation : "unknown",
+                            "HTTPResponseContentType": httpResponse.mimeType ?? "unknown",
+                            "HTTPResponseBytes": data.count,
+                            "AuthenticationHasStructuredResponse": status != nil,
+                        ])
+                    }
 
                     guard let responseDictionary = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
                           let dictionary = responseDictionary["Response"] as? [String: Any],

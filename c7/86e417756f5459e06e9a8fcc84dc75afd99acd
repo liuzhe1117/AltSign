@@ -1,0 +1,41 @@
+AltSign/Capabilities/ALTCapabilities.h
+  s_f708d8a6b93240::t_eec4f66f633b05 20,26
+Tests/README.md
+  s_f708d8a6b93240::t_eec4f66f633b05 1-22
+"AltSign/Model/Apple API/ALTProvisioningProfile.h"
+  s_f708d8a6b93240::t_eec4f66f633b05 35
+Package.swift
+  s_f708d8a6b93240::t_eec4f66f633b05 141
+AltSign/Model/ALTApplication.h
+  s_f708d8a6b93240::t_eec4f66f633b05 34,37-44
+Tests/WatchSigningTests.m
+  s_f708d8a6b93240::t_eec4f66f633b05 1-200
+AltSign/Signing/ALTSigner.mm
+  s_f708d8a6b93240::t_eec4f66f633b05 333-335,337-338,427,469
+AltSign/Capabilities/ALTCapabilities.m
+  s_f708d8a6b93240::t_eec4f66f633b05 20-21,23,44-47,66-69,75
+"AltSign/Model/Apple API/ALTProvisioningProfile.m"
+  s_f708d8a6b93240::t_eec4f66f633b05 113
+Tests/run-watch-signing-tests.py
+  s_f708d8a6b93240::t_eec4f66f633b05 1-73
+AltSign/Model/ALTApplication.mm
+  s_f708d8a6b93240::t_eec4f66f633b05 11,26-50,256-382
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "c786e417756f5459e06e9a8fcc84dc75afd99acd",
+  "prompts": {},
+  "sessions": {
+    "s_f708d8a6b93240": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a210ec-d111-71f0-b703-1d3fff66e581",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "liuzhe1117 <liuzhe1117@gmail.com>",
+      "total_additions": 487,
+      "total_deletions": 8
+    }
+  }
+}

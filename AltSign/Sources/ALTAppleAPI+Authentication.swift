@@ -66,7 +66,11 @@ public extension ALTAppleAPIError
             userInfo[ALTHTTPStatusCode] = statusCode
             userInfo[NSLocalizedFailureReasonErrorKey] = String(format: NSLocalizedString("Apple's authentication servers returned an error (HTTP %d).", comment: ""), statusCode)
             
-            if statusCode >= 300
+            if statusCode == 503
+            {
+                userInfo[NSLocalizedRecoverySuggestionErrorKey] = NSLocalizedString("This is most likely a problem on Apple's end, or you may have been rate limited. Please wait and try again later.", comment: "")
+            }
+            else if statusCode >= 300
             {
                 userInfo[NSLocalizedRecoverySuggestionErrorKey] = NSLocalizedString("This is most likely a problem on Apple's end, not with your Apple ID or password.", comment: "")
             }
